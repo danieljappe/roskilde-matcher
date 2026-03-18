@@ -1,0 +1,60 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: roskilde
+      POSTGRES_USER: roskilde
+      POSTGRES_PASSWORD: roskilde
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - roskilde-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U roskilde -d roskilde"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./data:/data
+    environment:
+      DATABASE_URL: postgresql+asyncpg://roskilde:roskilde@db:5432/roskilde
+      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID}
+      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET}
+      SPOTIFY_REDIRECT_URI: ${SPOTIFY_REDIRECT_URI:-https://localhost:5173/callback}
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key-change-in-production}
+      FRONTEND_URL: ${FRONTEND_URL:-https://localhost:5173}
+      LASTFM_API_KEY: ${LASTFM_API_KEY:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - roskilde-net
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      VITE_API_URL: ""
+    depends_on:
+      - backend
+    networks:
+      - roskilde-net
+
+volumes:
+  pgdata:
+
+networks:
+  roskilde-net:
+    driver: bridge

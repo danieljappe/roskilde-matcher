@@ -3,7 +3,7 @@ import { api } from "../api/client";
 import type { RecommendationListResponse } from "../types";
 import { useSpotifyAuth } from "./useSpotifyAuth";
 
-export function useRecommendations(limit = 100) {
+export function useRecommendations(limit = 500) {
   const { isAuthenticated } = useSpotifyAuth();
 
   return useQuery<RecommendationListResponse, Error>({

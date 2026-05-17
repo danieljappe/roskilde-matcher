@@ -3,6 +3,25 @@ import type { RecommendedArtist } from "../types";
 import { GenreTag } from "./GenreTag";
 import { ScoreBadge } from "./ScoreBadge";
 
+function fmt(iso: string) {
+  const d = new Date(iso);
+  const day = d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+  const time = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  return `${day} · ${time}`;
+}
+
+function formatSchedule(start_time: string | null, end_time: string | null, stage: string | null): string | null {
+  const parts: string[] = [];
+  if (start_time) {
+    const endStr = end_time
+      ? `–${String(new Date(end_time).getHours()).padStart(2, "0")}:${String(new Date(end_time).getMinutes()).padStart(2, "0")}`
+      : "";
+    parts.push(`${fmt(start_time)}${endStr}`);
+  }
+  if (stage) parts.push(stage);
+  return parts.length ? parts.join(" · ") : null;
+}
+
 interface ArtistCardProps {
   artist: RecommendedArtist;
   isSaved: boolean;
@@ -34,6 +53,11 @@ export function ArtistCard({ artist, isSaved, onToggleSave }: ArtistCardProps) {
               <GenreTag key={g} genre={g} />
             ))}
           </div>
+          {formatSchedule(artist.start_time, artist.end_time, artist.stage) && (
+            <p className="mt-2 text-xs text-gray-500 truncate">
+              {formatSchedule(artist.start_time, artist.end_time, artist.stage)}
+            </p>
+          )}
         </div>
       </Link>
 

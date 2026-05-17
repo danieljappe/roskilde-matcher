@@ -86,6 +86,41 @@ export function ArtistDetail() {
                 <GenreTag key={g} genre={g} />
               ))}
             </div>
+
+            {(artist.start_time || artist.stage) && (
+              <div className="mt-4 p-3 bg-gray-50 rounded-lg flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                {artist.start_time && (() => {
+                  const d = new Date(artist.start_time);
+                  const adjusted = new Date(d.getTime() + (d.getHours() < 6 ? 86400000 : 0));
+                  const fmt = (iso: string) => {
+                    const t = new Date(iso);
+                    return `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`;
+                  };
+                  return (
+                    <>
+                      <div>
+                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Day</p>
+                        <p className="font-medium text-gray-800">
+                          {adjusted.toLocaleDateString("en-DK", { weekday: "long", day: "numeric", month: "long" })}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Time</p>
+                        <p className="font-medium text-gray-800">
+                          {fmt(artist.start_time)}{artist.end_time && ` – ${fmt(artist.end_time)}`}
+                        </p>
+                      </div>
+                    </>
+                  );
+                })()}
+                {artist.stage && (
+                  <div>
+                    <p className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">Stage</p>
+                    <p className="font-medium text-gray-800">{artist.stage}</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

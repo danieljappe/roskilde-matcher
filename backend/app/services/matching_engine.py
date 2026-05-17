@@ -13,22 +13,28 @@ from app.services.genre_analyzer import compute_genre_match
 
 logger = logging.getLogger(__name__)
 
-WEIGHT_DIRECT = 0.55
-WEIGHT_GENRE = 0.45
+WEIGHT_DIRECT = 0.65
+WEIGHT_GENRE = 0.35
 WEIGHT_DISCOVERY = 0.0  # related-artists endpoint deprecated by Spotify Nov 2024
 
 DISCOVERY_MAP = {0: 0.0, 1: 0.3, 2: 0.65}
-RECENCY_MULTIPLIERS = {"short_term": 1.0, "medium_term": 0.85, "long_term": 0.7}
+# Long-term presence weighted highest — recent spikes shouldn't beat sustained favourites.
+# Scores are additive across ranges so consistent presence compounds; clamped to 1.0.
+RANGE_WEIGHTS = {"short_term": 0.5, "medium_term": 0.8, "long_term": 1.0}
 
 
-def _compute_direct_match(artist_spotify_id: str, top_artists: dict) -> float:
-    for time_range, multiplier in RECENCY_MULTIPLIERS.items():
+def _compute_direct_match(artist_spotify_id: str | None, artist_name: str, top_artists: dict) -> float:
+    total = 0.0
+    for time_range, weight in RANGE_WEIGHTS.items():
         artists_in_range = top_artists.get(time_range, [])
         for rank, a in enumerate(artists_in_range):
-            if a.get("id") == artist_spotify_id:
+            id_match = artist_spotify_id and a.get("id") == artist_spotify_id
+            name_match = a.get("name", "").lower() == artist_name.lower()
+            if id_match or name_match:
                 rank_decay = 1.0 - (rank / 50.0)
-                return multiplier * rank_decay
-    return 0.0
+                total += weight * rank_decay
+                break  # only count each range once per artist
+    return min(total, 1.0)
 
 
 def _compute_discovery_score(related_artists: list[dict], user_artist_ids: set[str]) -> float:
@@ -67,7 +73,7 @@ async def compute_recommendations(user_id: int, db: AsyncSession) -> list[dict]:
     rows: list[dict] = []
 
     for artist in artists:
-        direct = _compute_direct_match(artist.spotify_id, top_artists)
+        direct = _compute_direct_match(artist.spotify_id, artist.name, top_artists)
         genre = compute_genre_match(genre_profile, artist.genres or [])
         discovery = _compute_discovery_score(artist.related_artists or [], user_artist_ids)
 

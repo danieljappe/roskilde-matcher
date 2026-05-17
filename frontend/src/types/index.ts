@@ -25,6 +25,10 @@ export interface FestivalArtist {
   popularity: number | null;
   image_url: string | null;
   spotify_id: string | null;
+  stage: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  is_music: boolean;
 }
 
 export interface FestivalArtistDetail extends FestivalArtist {

@@ -25,6 +25,10 @@ def _build_response(user: UserProfile, recs: list[UserRecommendation]) -> Recomm
             popularity=rec.festival_artist.popularity,
             image_url=rec.festival_artist.image_url,
             spotify_id=rec.festival_artist.spotify_id,
+            stage=rec.festival_artist.stage,
+            start_time=rec.festival_artist.start_time,
+            end_time=rec.festival_artist.end_time,
+            is_music=rec.festival_artist.is_music,
             composite_score=rec.composite_score,
             genre_match_score=rec.genre_match_score,
             artist_match_score=rec.artist_match_score,
@@ -53,7 +57,7 @@ async def _load_recs(user_id: int, limit: int, db: AsyncSession) -> list[UserRec
 @router.get("", response_model=RecommendationListResponse)
 async def get_recommendations(
     request: Request,
-    limit: int = 100,
+    limit: int = 500,
     user: UserProfile = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> RecommendationListResponse:

@@ -16,6 +16,8 @@ export function Dashboard() {
   const { isSaved, toggle } = useSchedule();
   const [minScore, setMinScore] = useState(0);
   const [genreFilter, setGenreFilter] = useState("");
+  const [showEvents, setShowEvents] = useState(false);
+  const [debugOpen, setDebugOpen] = useState(false);
 
   const { data: genreData } = useQuery({
     queryKey: ["genres"],
@@ -25,6 +27,8 @@ export function Dashboard() {
   });
 
   const filtered = (data?.results ?? []).filter((a) => {
+    const isEvent = !a.start_time && a.genres.length === 0;
+    if (showEvents ? !isEvent : isEvent) return false;
     if (a.composite_score < minScore) return false;
     if (genreFilter && !a.genres.some((g) => g.toLowerCase().includes(genreFilter.toLowerCase())))
       return false;
@@ -88,48 +92,59 @@ export function Dashboard() {
       </header>
 
       <main className="max-w-6xl mx-auto px-4 py-8">
-        {/* Debug: top_artists */}
+        {/* Debug accordion */}
         {user && (
-          <section className="bg-gray-900 rounded-xl p-6 shadow-sm mb-8 text-white">
-            <h2 className="font-semibold mb-2 text-green-400">Debug: top_artists</h2>
-            <p className="text-xs text-gray-400 mb-3">
-              short_term: {user.top_artists?.short_term?.length ?? 0} |{" "}
-              medium_term: {user.top_artists?.medium_term?.length ?? 0} |{" "}
-              long_term: {user.top_artists?.long_term?.length ?? 0}
-            </p>
-            {(["short_term", "medium_term", "long_term"] as const).map((range) => {
-              const artists = user.top_artists?.[range];
-              if (!artists?.length) return null;
-              return (
-                <div key={range} className="mb-4">
-                  <h3 className="text-sm font-medium text-gray-300 mb-2 capitalize">{range.replace("_", " ")}</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {artists.slice(0, 20).map((a, i) => (
-                      <span key={a.id} className="text-xs bg-gray-800 px-2 py-1 rounded">
-                        {i + 1}. {a.name}
-                        {(a.genres?.length ?? 0) > 0 && (
-                          <span className="text-gray-500 ml-1">({a.genres.slice(0, 2).join(", ")})</span>
-                        )}
+          <section className="bg-gray-900 rounded-xl shadow-sm mb-8 text-white overflow-hidden">
+            <button
+              onClick={() => setDebugOpen((o) => !o)}
+              className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-800 transition-colors"
+            >
+              <span className="font-semibold text-green-400 text-sm">Debug info</span>
+              <span className="text-gray-400 text-xs">{debugOpen ? "▲" : "▼"}</span>
+            </button>
+            {debugOpen && (
+              <div className="px-6 pb-6">
+                <h2 className="font-semibold mb-2 text-green-400">top_artists</h2>
+                <p className="text-xs text-gray-400 mb-3">
+                  short_term: {user.top_artists?.short_term?.length ?? 0} |{" "}
+                  medium_term: {user.top_artists?.medium_term?.length ?? 0} |{" "}
+                  long_term: {user.top_artists?.long_term?.length ?? 0}
+                </p>
+                {(["short_term", "medium_term", "long_term"] as const).map((range) => {
+                  const artists = user.top_artists?.[range];
+                  if (!artists?.length) return null;
+                  return (
+                    <div key={range} className="mb-4">
+                      <h3 className="text-sm font-medium text-gray-300 mb-2 capitalize">{range.replace("_", " ")}</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {artists.slice(0, 20).map((a, i) => (
+                          <span key={a.id} className="text-xs bg-gray-800 px-2 py-1 rounded">
+                            {i + 1}. {a.name}
+                            {(a.genres?.length ?? 0) > 0 && (
+                              <span className="text-gray-500 ml-1">({a.genres.slice(0, 2).join(", ")})</span>
+                            )}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+                <h2 className="font-semibold mb-2 text-yellow-400 mt-4">genre_profile</h2>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(user.genre_profile ?? {})
+                    .sort(([, a], [, b]) => b - a)
+                    .slice(0, 30)
+                    .map(([genre, score]) => (
+                      <span key={genre} className="text-xs bg-gray-800 px-2 py-1 rounded">
+                        {genre}: <span className="text-yellow-400">{(score as number).toFixed(3)}</span>
                       </span>
                     ))}
-                  </div>
+                  {Object.keys(user.genre_profile ?? {}).length === 0 && (
+                    <span className="text-gray-500 text-xs">empty — run enrichment first</span>
+                  )}
                 </div>
-              );
-            })}
-            <h2 className="font-semibold mb-2 text-yellow-400 mt-4">Debug: genre_profile</h2>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(user.genre_profile ?? {})
-                .sort(([, a], [, b]) => b - a)
-                .slice(0, 30)
-                .map(([genre, score]) => (
-                  <span key={genre} className="text-xs bg-gray-800 px-2 py-1 rounded">
-                    {genre}: <span className="text-yellow-400">{(score as number).toFixed(3)}</span>
-                  </span>
-                ))}
-              {Object.keys(user.genre_profile ?? {}).length === 0 && (
-                <span className="text-gray-500 text-xs">empty — run enrichment first</span>
-              )}
-            </div>
+              </div>
+            )}
           </section>
         )}
 
@@ -143,6 +158,16 @@ export function Dashboard() {
 
         {/* Filters */}
         <div className="bg-white rounded-xl p-4 shadow-sm mb-6 flex flex-wrap gap-4 items-center">
+          <button
+            onClick={() => setShowEvents((v) => !v)}
+            className={`text-sm px-3 py-2 rounded-lg font-medium transition-colors min-h-[44px] ${
+              showEvents
+                ? "bg-indigo-600 text-white"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            {showEvents ? "Events: On" : "Events: Off"}
+          </button>
           <div className="flex items-center gap-2">
             <label htmlFor="min-score" className="text-sm text-gray-600 whitespace-nowrap">
               Min score: {Math.round(minScore * 100)}%

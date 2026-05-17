@@ -32,7 +32,7 @@ export const api = {
   logout: () =>
     apiFetch<{ status: string }>("/auth/logout", { method: "POST" }),
 
-  getRecommendations: (limit = 100) =>
+  getRecommendations: (limit = 500) =>
     apiFetch<RecommendationListResponse>(`/recommendations?limit=${limit}`),
 
   refreshRecommendations: () =>

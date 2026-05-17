@@ -81,5 +81,9 @@ async def get_artist(
         popularity=artist.popularity,
         image_url=artist.image_url,
         spotify_id=artist.spotify_id,
+        stage=artist.stage,
+        start_time=artist.start_time,
+        end_time=artist.end_time,
+        is_music=artist.is_music,
         related_artists=artist.related_artists or [],
     )
